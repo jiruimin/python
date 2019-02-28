@@ -55,10 +55,20 @@ class YixinTable(object) :
 
 yixin = YixinTable()
 matrix = yixin.select('867012030288069') # 867012030288069/867012030289521
-
+matrix = np.zeros((1, 4))
+arr = np.array([1,2,3,4])
+matrix[0,:] = [1,2,3,4]
+matrix[0,0] = 1.0
+matrix[0,1] = 2.0
+matrix[0,2] = 3.0
+matrix[0,3] = 4.0
 data = [[0, 0], [1, 1], [2, 2], [4, 3], [5, 3], [4, 4], [5, 4], [6, 5]]
 data1 = matrix[:,0:2].tolist()
 print(matrix)
+print(arr.dot(arr.T))
+print(int(matrix.dot(matrix.T)))
+
+# a.dot(a)
 # data = matrix
 # initial_set = [1, 20, 20, 20, 0.01, 1, 100, 0.5]
 # isodata = IsoData(initial_set, data1)

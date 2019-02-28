@@ -50,5 +50,9 @@ class IsoData(object):
             self.result.append(d)
         
         # 将全体样本分类
-        # for i in range(self.data.shape[0]):
-
+        for i in range(self.data.shape[0]):
+            point = self.data[i]
+            index = 0
+            dis = 0
+            for j in range(len(cluster_center)):
+                
