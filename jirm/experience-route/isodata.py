@@ -42,17 +42,41 @@ class IsoData(object):
     def start(self):
         self.cluster_center = []  # 聚类中心list
         self.result = []  # 聚类结果
-        
+
         # 预选nc个聚类中心
         for i in range(self.nc):
             d = self.data[int(self.data.shape[0] * i / self.nc),:]
             self.cluster_center.append(d)
-            self.result.append(d)
+            self.result.append([d])
         
         # 将全体样本分类
         for i in range(self.data.shape[0]):
             point = self.data[i]
-            index = 0
-            dis = 0
-            for j in range(len(cluster_center)):
-                
+            # index = 0
+            # dis = 99999
+            # for j in range(len(self.cluster_center)):
+            #     center = self.cluster_center[j]
+            #     dis_1 = point * center.T
+            #     if dis_1 < dis:
+            #         index = j
+            #         dis = dis_1
+            dis_l = self.cluster_center * point.T
+            index = np.argmax(dis_l[:,0])
+            self.result[index].append(point)
+
+        # 删除样本条数小于min_num的分类
+        for i in range(len(self.result)):
+            if len(self.result[i]) < self.min_num:
+                self.result.pop(i)
+                self.cluster_center.pop(i)
+                self.nc -= 1
+                # 重新分类
+    
+    # 调整各类型中心点
+    def step4(self):
+        self.cluster_center = []  # 聚类中心list
+        for i in range(len(self.result)):
+            sum_1 = self.result[i].sum(axis=0) / len(self.result[i])
+            self.cluster_center.append(sum_1[0,:])
+
+    # 计算类内平均距离和总体平均距离
