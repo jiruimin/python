@@ -64,9 +64,11 @@ matrix[0,2] = 3.0
 matrix[0,3] = 4.0
 data = [[0, 0], [1, 1], [2, 2], [4, 3], [5, 3], [4, 4], [5, 4], [6, 5]]
 data1 = matrix[:,0:2].tolist()
-print(matrix)
-print(arr.dot(arr.T))
-print(int(matrix.dot(matrix.T)))
+
+l = []
+print(l)
+l[4] = 8
+print(l)
 
 # a.dot(a)
 # data = matrix
