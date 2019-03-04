@@ -64,7 +64,6 @@ class IsoData(object):
                 self.result.pop(i)
                 self.cluster_center.pop(i)
                 self.nc -= 1
-                self.step2()
         self.step4()
 
     def step4(self):
