@@ -33,7 +33,8 @@ class IsoData(object):
         self.k = initial_set[7]
 
         self.current_i = 0  # 目前迭代的次数
-        self.data = data  # 数据集
+        self.data = data    # 数据集
+        self.outlier = []  # 离群数据集
 
         self.center = []  # 聚类中心list
         self.result = []  # 聚类结果
@@ -50,52 +51,31 @@ class IsoData(object):
         if(self.current_i >= self.I):
             return self.center, self.result
         self.current_i += 1
-        print('第[%s]轮循环......当前中心点：' % self.current_i, str(self.center), sep='')
+        print('第[%s]轮循环......当前中心点[%s]：' % (len(self.center), self.current_i), str(self.center), sep='')
         
         # 将全体样本分类
-        self.result = self.center.copy()  # 聚类结果
-        for i in range(self.data.shape[0]):
-            point = self.data[i,:]
-            # index = 0
-            # dis = 99999
-            # for j in range(len(self.cluster_center)):
-            #     center = self.cluster_center[j]
-            #     dis_1 = point * center.T
-            #     if dis_1 < dis:
-            #         index = j
-            #         dis = dis_1
-            index = 0
-            dis_min = 9999
-            for j in range(len(self.center)):
-                dis_l = np.linalg.norm(self.center[j] - point)
-                if dis_l < dis_min:
-                    dis_min = dis_l
-                    index = j
-            self.result[index] = np.vstack((self.result[index], point))
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        #设置标题  
-        ax.set_title('start')
-        
-        c_l = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-        #画散点图  
-        for i in range(len(self.center)):
-            points = self.result[i]
-            center = self.center[i]
-            # c_l = np.arctan2(center[1], center[0])
-            ax.scatter(np.array([center[0]]), np.array([center[1]]), s = 30, c = np.array([c_l[i % 8]]))
-            ax.scatter(points[:,0], points[:,1], s = 10, c =  np.array([c_l[i % 8]] * len(points)))
-        #设置X轴标签  
-        plt.xlabel('lon')  
-        #设置Y轴标签  
-        plt.ylabel('lat')
-        plt.show()
-        ax.remove()
+        if self.current_i == 1:
+            result = [self.data]
+        else:
+            result = self.result.copy()  # 聚类结果
+        self.result = self.center.copy()
+        # for i in range(self.data.shape[0]):
+        for i in range(len(result)):
+            for k in range(len(result[i])):
+                point = result[i][k]
+                index = 0
+                dis_min = 9999
+                for j in range(len(self.center)):
+                    dis_l = np.linalg.norm(self.center[j] - point)
+                    if dis_l < dis_min:
+                        dis_min = dis_l
+                        index = j
+                self.result[index] = np.vstack((self.result[index], point))
         # 删除第一个点，第一个点为类中心点，删除重复添加
         for i in range(len(self.result)):
             self.result[i] = np.delete(self.result[i], 0, axis = 0)
 
+        # self.show()
         # 删除样本条数小于min_num的分类
         for i in range(len(self.result) - 1, -1, -1):
             if len(self.result[i]) < self.min_num:
@@ -128,6 +108,7 @@ class IsoData(object):
 
     # 判断是否迭代，进行分裂还是合并
     def step7(self):
+        self.show()
         # 迭代次数超过设置值 or 迭代次数是偶数次 or 分类数大于2K
         if self.current_i > self.I or self.current_i % 2 == 0 or self.nc >= 2 * self.K:
             # 合并
@@ -148,7 +129,8 @@ class IsoData(object):
             max_standard_dev.append(std_vec[index])
 
         flag = False
-        for i in range(len(max_standard_dev)):
+        
+        for i in range(len(max_standard_dev) - 1, -1, -1):
             if max_standard_dev[i] > self.s and \
                     ((self.inner_mean_distance[i] > self.all_mean_distance and self.result[i].shape[0] > 2 * self.min_num) or self.nc < self.K / 2):
                 # 分裂操作
@@ -188,7 +170,40 @@ class IsoData(object):
             self.nc -= 1
         self.start()
 
+    def show(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        #设置标题  
+        ax.set_title('start_%s' % self.current_i)
+        
+        c_l = ['b', 'g', 'c', 'm', 'y', 'k']
+        #画散点图  
+        ax.scatter(self.data[:,0], self.data[:,1], s = 1, c =  'r', marker='*')
+        for i in range(len(self.center)):
+            points = self.result[i]
+            center = self.center[i]
+            if len(points) > 5:
+                # c_l = np.arctan2(center[1], center[0])
+                ax.scatter(np.array([center[0]]), np.array([center[1]]), s = 50, c = np.array([c_l[i % 6]]))
+                ax.annotate('%5f#%s'% (isodata.inner_mean_distance[i], len(self.result[i])), xy=(center[0], center[1]), xytext=(center[0], center[1]))
+                ax.scatter(points[:,0], points[:,1], s = 1, c =  np.array([c_l[i % 6]] * len(points)))
+        
+
+        #设置X轴标签  
+        plt.xlabel('lon')  
+        #设置Y轴标签  
+        plt.ylabel('lat')
+        plt.show()
+
+def get_lonlats(arr):
+        lonlat = ''
+        for i in range(len(arr)):
+            lonlat = lonlat + str(arr[i][0]) + ',' + str(arr[i][1]) + ';'
+        return lonlat
+
+
 if __name__ == "__main__":
+    
     yixin = YixinTable()
     # yixin.load(r'jirm\experience-route\jirm.csv')
     matrix = yixin.select('867012030288069') # 867012030288069/867012030289521
@@ -204,14 +219,32 @@ if __name__ == "__main__":
     # L：在一次迭代中允许合并的聚类中心的最大对数
     # I：允许迭代的次数
     # k：分裂系数
-    initial_set = [4, 20, 20, 0.001, 0.01, 1, 100, 0.5]
+    initial_set = [4, 8, 5, 0.01, 0.01, 1, 10, 0.5]
     isodata = IsoData(initial_set, matrix)
     isodata.start()
-    center = np.array(isodata.center)
-
-    # for i in range(len(result)):
-    #     print('----------第' + str(i+1) + '个聚类----------')
-    #     print(result[i])
-    # initial_set = [2, 2, 1, 1, 4, 0, 4, 0.5]
-    # isodata = IsoData(initial_set, data)
-    # isodata.start()
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    #设置标题  
+    ax.set_title('start_last')
+    
+    c_l = ['b', 'g', 'c', 'm', 'y', 'k']
+    #画散点图  
+    ax.scatter(matrix[:,0], matrix[:,1], s = 1, c =  'r', marker='*')
+    for i in range(len(isodata.center)):
+        points = isodata.result[i]
+        center = isodata.center[i]
+        if len(points) > 5:
+            # c_l = np.arctan2(center[1], center[0])
+            ax.scatter(np.array([center[0]]), np.array([center[1]]), s = 50, c = np.array([c_l[i % 6]]))
+            ax.annotate('%5f'% isodata.inner_mean_distance[i], xy=(center[0], center[1]), xytext=(center[0], center[1]))
+            ax.scatter(points[:,0], points[:,1], s = 1, c =  np.array([c_l[i % 6]] * len(points)))
+    #设置X轴标签  
+    plt.xlabel('lon')  
+    #设置Y轴标签  
+    plt.ylabel('lat')
+    plt.show()
+    ax.remove()
+    l = get_lonlats(matrix)
+    r = get_lonlats(isodata.center)
+    print(get_lonlats(matrix))
+    print(get_lonlats(isodata.center))
