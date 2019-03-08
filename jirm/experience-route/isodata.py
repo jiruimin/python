@@ -13,7 +13,7 @@ isodata聚合算法实现，基于numpy库
 '''
 
 import numpy as np
-from data_util import YixinTable 
+from yixin_data import YixinTable 
 import matplotlib.pyplot as plt
 
 
@@ -33,7 +33,7 @@ class IsoData(object):
         self.k = initial_set[7]
 
         self.current_i = 0  # 目前迭代的次数
-        self.data = data    # 数据集
+        self.data = np.array(data)    # 数据集
         self.outlier = []  # 离群数据集
 
         self.center = []  # 聚类中心list
@@ -43,13 +43,20 @@ class IsoData(object):
         self.all_mean_distance = 0  # 全部样本的总体平均距离
         # 预选nc个聚类中心
         for i in range(self.nc):
-            d = self.data[int(self.data.shape[0] * i / self.nc),:]
+            d = self.data[int(len(self.data) * i / self.nc)]
             self.center.append(d)
-        
+    
+    def get_result(self):
+        dict = {}
+        for i in range(len(self.center)):
+            for j in range(len(self.result[i])):
+                # dict[str(self.result[i][j][0]) + ',' + str(self.result[i][j][1])] = str(self.center[i][0]) + ',' + str(self.center[i][1])
+                if 118.0043867 == self.result[i][j][0]:
+                    print('***)')
+                dict[str(self.result[i][j][0]) + ',' + str(self.result[i][j][1])] = '%5f,%5f' % (self.center[i][0], self.center[i][1])
+        return dict
 
     def start(self):
-        if(self.current_i >= self.I):
-            return self.center, self.result
         self.current_i += 1
         print('第[%s]轮循环......当前中心点[%s]：' % (len(self.center), self.current_i), str(self.center), sep='')
         
@@ -79,6 +86,7 @@ class IsoData(object):
         # 删除样本条数小于min_num的分类
         for i in range(len(self.result) - 1, -1, -1):
             if len(self.result[i]) < self.min_num:
+                self.outlier.append(self.result[i])
                 self.result.pop(i)
                 self.center.pop(i)
                 self.nc -= 1
@@ -108,7 +116,9 @@ class IsoData(object):
 
     # 判断是否迭代，进行分裂还是合并
     def step7(self):
-        self.show()
+        if(self.current_i >= self.I):
+            return self.center, self.result
+        # self.show()
         # 迭代次数超过设置值 or 迭代次数是偶数次 or 分类数大于2K
         if self.current_i > self.I or self.current_i % 2 == 0 or self.nc >= 2 * self.K:
             # 合并
@@ -185,7 +195,7 @@ class IsoData(object):
             if len(points) > 5:
                 # c_l = np.arctan2(center[1], center[0])
                 ax.scatter(np.array([center[0]]), np.array([center[1]]), s = 50, c = np.array([c_l[i % 6]]))
-                ax.annotate('%5f#%s'% (isodata.inner_mean_distance[i], len(self.result[i])), xy=(center[0], center[1]), xytext=(center[0], center[1]))
+                ax.annotate('%5f#%s'% (self.inner_mean_distance[i], len(self.result[i])), xy=(center[0], center[1]), xytext=(center[0], center[1]))
                 ax.scatter(points[:,0], points[:,1], s = 1, c =  np.array([c_l[i % 6]] * len(points)))
         
 
@@ -201,27 +211,8 @@ def get_lonlats(arr):
             lonlat = lonlat + str(arr[i][0]) + ',' + str(arr[i][1]) + ';'
         return lonlat
 
-
-if __name__ == "__main__":
-    
-    yixin = YixinTable()
-    # yixin.load(r'jirm\experience-route\jirm.csv')
-    matrix = yixin.select('867012030288069') # 867012030288069/867012030289521
-
-    # data = np.array([[0, 0], [1, 1], [2, 2], [4, 3], [5, 3], [4, 4], [5, 4], [6, 5]])
-
-
-    # nc : 预选nc个聚类中心
-    # K：希望的聚类中心个数
-    # min_num：每个聚类中最少样本数
-    # s：聚类域中样本的标准差阈值
-    # c：两聚类中心之间的最短距离
-    # L：在一次迭代中允许合并的聚类中心的最大对数
-    # I：允许迭代的次数
-    # k：分裂系数
-    initial_set = [4, 8, 5, 0.01, 0.01, 1, 10, 0.5]
-    isodata = IsoData(initial_set, matrix)
-    isodata.start()
+def show_all(matrix, isodata):
+    matrix = np.array(matrix)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     #设置标题  
@@ -236,15 +227,44 @@ if __name__ == "__main__":
         if len(points) > 5:
             # c_l = np.arctan2(center[1], center[0])
             ax.scatter(np.array([center[0]]), np.array([center[1]]), s = 50, c = np.array([c_l[i % 6]]))
-            ax.annotate('%5f'% isodata.inner_mean_distance[i], xy=(center[0], center[1]), xytext=(center[0], center[1]))
+            ax.annotate('%5f' % isodata.inner_mean_distance[i], xy=(center[0], center[1]), xytext=(center[0], center[1]))
             ax.scatter(points[:,0], points[:,1], s = 1, c =  np.array([c_l[i % 6]] * len(points)))
     #设置X轴标签  
     plt.xlabel('lon')  
     #设置Y轴标签  
     plt.ylabel('lat')
     plt.show()
-    ax.remove()
-    l = get_lonlats(matrix)
-    r = get_lonlats(isodata.center)
-    print(get_lonlats(matrix))
-    print(get_lonlats(isodata.center))
+
+if __name__ == "__main__":
+    
+    yixin = YixinTable()
+    # yixin.load(r'jirm\experience-route\jirm.csv')
+    start_matrix, end_matrix, dict = yixin.select('867012030302811') # 867012030302811/867012030287491
+
+    # nc : 预选nc个聚类中心
+    # K：希望的聚类中心个数
+    # min_num：每个聚类中最少样本数
+    # s：聚类域中样本的标准差阈值
+    # c：两聚类中心之间的最短距离
+    # L：在一次迭代中允许合并的聚类中心的最大对数
+    # I：允许迭代的次数
+    # k：分裂系数
+    initial_set = [4, 8, 5, 0.01, 0.01, 1, 10, 0.5]
+    start_isodata = IsoData(initial_set, start_matrix)
+    start_isodata.start()
+    start_result = start_isodata.get_result()
+
+    end_isodata = IsoData(initial_set, end_matrix)
+    end_isodata.start()
+    end_result = end_isodata.get_result()
+
+
+    show_all(start_matrix, start_isodata)
+    show_all(end_matrix, end_isodata)
+    for key, value in dict.items():
+        start_mean = start_result[value[0]] if value[0] in start_result else ''
+        end_mean = end_result[value[1]] if value[1] in end_result else ''
+        print(key, value[0], value[1], start_mean, end_mean, sep='-------')
+        yixin.update(key, start_mean, end_mean)
+        yixin.commit()
+    yixin.commit()
