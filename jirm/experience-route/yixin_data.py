@@ -34,7 +34,9 @@ class YixinData(object):
 
 class YixinTable(object) :
     def __init__(self):
-        self._conn = sqlite3.connect('D:/sqlite3/yixin.db')
+        # /mapbar/data/sqlite3
+        # self._conn = sqlite3.connect('D:/sqlite3/yixin.db')
+        self._conn = sqlite3.connect('/mapbar/data/sqlite3/yixin.db')
         self._cursor = self._conn.cursor()
         
         # self._cursor.execute('DROP TABLE ' + __table_name__) 
@@ -104,4 +106,4 @@ class YixinTable(object) :
             
 if __name__ == "__main__":
     yixin = YixinTable()
-    yixin.load('867012030302811') # 867012030302811  "867012030287491"
+    yixin.load('867012030287491') # 867012030302811  "867012030287491"

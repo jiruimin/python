@@ -255,7 +255,7 @@ if __name__ == "__main__":
     
     yixin = YixinTable()
     # yixin.load(r'jirm\experience-route\jirm.csv')
-    start_matrix, end_matrix, dict = get_start_end(yixin.select('867012030302811')) # 867012030302811  "867012030287491"
+    start_matrix, end_matrix, dict = get_start_end(yixin.select('867012030287491')) # 867012030302811  "867012030287491"
 
     # nc : 预选nc个聚类中心
     # K：希望的聚类中心个数

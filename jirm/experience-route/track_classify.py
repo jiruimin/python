@@ -76,7 +76,7 @@ def get_experience_lonlat(lonlats_list):
 
 
 if __name__ == "__main__":
-    yixin_dict = classify(867012030302811)   # 867012030302811  "867012030287491"
+    yixin_dict = classify(867012030302811)   # 867012030287491  "867012030287491"
     for key,value in yixin_dict.items():
         lonlats_list = []
         yixin_ids = []
