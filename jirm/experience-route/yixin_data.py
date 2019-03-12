@@ -12,8 +12,25 @@ import pymongo as pm
 
 __table_name__ = 'yixin_org'
 __table_name_filte__ = 'yixin_org_filte'
+__yixin_experience_org__ = 'yixin_experience_org'
 __mongo_host__ = '192.168.145.79'
 __mongo_port__ = 27017
+
+class YixinData(object):
+    def __init__(self, data):
+        self.id = data[0]
+        self.imei = data[1]
+        self.vin = data[2]
+        self.start = data[3]
+        self.end = data[4]
+        self.startTime = data[5]
+        self.endTime = data[6]
+        self.runTime = data[7]
+        self.interval = data[8]
+        self.speed = data[9]
+        self.startMean = data[10]
+        self.endMean = data[11]
+        self.org = data[12]
 
 class YixinTable(object) :
     def __init__(self):
@@ -21,44 +38,49 @@ class YixinTable(object) :
         self._cursor = self._conn.cursor()
         
         # self._cursor.execute('DROP TABLE ' + __table_name__) 
-        self._cursor.execute("CREATE TABLE IF NOT EXISTS " + __table_name__ + " ('id' TEXT PRIMARY KEY,'imei' TEXT NOT NULL, 'vin' TEXT NOT NULL, \
+        self._cursor.execute("CREATE TABLE IF NOT EXISTS " + __table_name__ + " ('id' TEXT PRIMARY KEY,'imei' TEXT NOT NULL, 'vin' TEXT NOT NULL,  \
                                  'start' TEXT, 'end' TEXT, 'startTime' INTEGER, 'endTime' INTEGER, 'runTime' INTEGER, \
                                      'interval' REAL, 'speed' REAL, 'startMean' TEXT, 'endMean' TEXT, 'org' TEXT)")
         self._cursor.execute("CREATE TABLE IF NOT EXISTS " + __table_name_filte__ + " ('id' TEXT PRIMARY KEY,'imei' TEXT NOT NULL, 'vin' TEXT NOT NULL, \
                                  'start' TEXT, 'end' TEXT, 'startTime' INTEGER, 'endTime' INTEGER, 'runTime' INTEGER, \
                                      'interval' REAL, 'speed' REAL, 'startMean' TEXT, 'endMean' TEXT, 'org' TEXT)")
+        self._cursor.execute("CREATE TABLE IF NOT EXISTS " + __yixin_experience_org__ + " ('imei' TEXT NOT NULL, \
+                                'vin' TEXT NOT NULL, 'startMean' TEXT, 'endMean' TEXT, 'startTime' INTEGER, 'yixin_ids' TEXT, 'correct_id' TEXT, 'org' TEXT)")
 
-    def insert(self, id, imei, vin, start, end, startTime, endTime, runTime, interval, speed, org, startMean='', endMean=''):
+    def insert_experience_org(self, imei, vin, startMean, endMean, startTime, yixin_ids, correct_id, org):
+        self._cursor.execute("INSERT INTO "  + __yixin_experience_org__ + " ('imei', 'vin', 'startMean', 'endMean', 'startTime', 'yixin_ids', 'correct_id', \
+                            'org') VALUES(?, ?, ?, ?, ?, ?, ?, ?)", (imei, vin, startMean, endMean, startTime, yixin_ids, correct_id, org))
+
+    def insert(self, id, imei, vin, start, end, startTime, endTime, runTime, interval, speed, startMean, endMean, org):
         self._cursor.execute("INSERT INTO "  + __table_name__ + " ('id', 'imei', 'vin', 'start', 'end', 'startTime', 'endTime', 'runTime', \
                             'interval', 'speed', 'startMean', 'endMean', 'org') VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)",
-                                (id, imei, vin, start, end, startTime, endTime, runTime, interval, speed, org, startMean, endMean))
+                                (id, imei, vin, start, end, startTime, endTime, runTime, interval, speed, startMean, endMean, org))
         if interval > 5:
             self._cursor.execute("INSERT INTO "  + __table_name_filte__ + " ('id', 'imei', 'vin', 'start', 'end', 'startTime', 'endTime', 'runTime', \
                             'interval', 'speed', 'startMean', 'endMean', 'org') VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)",
-                                (id, imei, vin, start, end, startTime, endTime, runTime, interval, speed, org, startMean, endMean))
+                                (id, imei, vin, start, end, startTime, endTime, runTime, interval, speed, startMean, endMean, org))
     
     def update(self, id, startMean, endMean):
-        self._cursor.execute("update " + __table_name_filte__ +" set startMean = \'%s\', endMean = \'%s\' where id = \'%s\'" % (startMean, endMean, id))
+        self._cursor.execute("update %s set startMean = \'%s\', endMean = \'%s\' where id = \'%s\'" % (__table_name_filte__, startMean, endMean, id))
         
     def commit(self):
         self._conn.commit()
 
+    # def select(self, imei):
+    #     self._cursor.execute("SELECT * from " + __table_name_filte__ + ' where imei = \'' + imei + '\'')
+    #     res = self._cursor.fetchall()
+
     def select(self, imei):
-        self._cursor.execute("SELECT id, start, end from " + __table_name_filte__ + ' where imei = \'' + imei + '\'')
+        # self._cursor.execute("SELECT id, start, end from " + __table_name_filte__ + ' where imei = \'' + imei + '\'s')
+        self._cursor.execute("SELECT * from %s where imei = \'%s\'" % (__table_name_filte__, imei))
         res = self._cursor.fetchall()
         dict = {}
-        start_matrix, end_matrix  = [], []
         for i in range(len(res)):
-            dict[res[i][0]] = (res[i][1], res[i][2])
+            yixin_data = YixinData(res[i])
+            dict[yixin_data.id] = yixin_data
+        return dict
 
-            lonlat = res[i][1].split(',')
-            start_matrix.append([float(lonlat[0]), float(lonlat[1])])
-
-            lonlat = res[i][2].split(',')
-            end_matrix.append([float(lonlat[0]), float(lonlat[1])])
-        return start_matrix, end_matrix, dict
-
-    def load(self):
+    def load(self, imei):
         # 获取连接
         client = pm.MongoClient(__mongo_host__, __mongo_port__)  # 端口号是数值型
         # 连接数据库location-platform
@@ -67,8 +89,8 @@ class YixinTable(object) :
         stb1 = db.PartSplit
         stb2 = db.t_yixin_org_data
 
-        # 获取数据信息   867012030302811  "867012030287491"
-        datas = stb1.find({'imei':'867012030302811'},{"extend":0,"parts":0,"points":0,"_class":0})
+        # 获取数据信息  
+        datas = stb1.find({'imei':imei},{"extend":0,"parts":0,"points":0,"_class":0})
         k = 0
         for en in datas:
             org = stb2.find_one({'_id':str(en['_id']) + "#" + en['imei']}, {"orgLonlats":1})
@@ -82,5 +104,4 @@ class YixinTable(object) :
             
 if __name__ == "__main__":
     yixin = YixinTable()
-    yixin.load()
-    print(yixin.select('867012030302811'))
+    yixin.load('867012030302811') # 867012030302811  "867012030287491"

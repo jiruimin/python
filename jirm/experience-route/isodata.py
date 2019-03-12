@@ -49,11 +49,13 @@ class IsoData(object):
     def get_result(self):
         dict = {}
         for i in range(len(self.center)):
+            ll = ''
             for j in range(len(self.result[i])):
                 # dict[str(self.result[i][j][0]) + ',' + str(self.result[i][j][1])] = str(self.center[i][0]) + ',' + str(self.center[i][1])
-                if 118.0043867 == self.result[i][j][0]:
-                    print('***)')
-                dict[str(self.result[i][j][0]) + ',' + str(self.result[i][j][1])] = '%5f,%5f' % (self.center[i][0], self.center[i][1])
+                point = str(self.result[i][j][0]) + ',' + str(self.result[i][j][1])
+                dict[point] = '%.5f,%.5f' % (self.center[i][0], self.center[i][1])
+                ll += (point + ';')
+            print('%s/%s:%5f,%5f------%s' % (len(self.center), i, self.center[i][0], self.center[i][1], ll))
         return dict
 
     def start(self):
@@ -142,7 +144,8 @@ class IsoData(object):
         
         for i in range(len(max_standard_dev) - 1, -1, -1):
             if max_standard_dev[i] > self.s and \
-                    ((self.inner_mean_distance[i] > self.all_mean_distance and self.result[i].shape[0] > 2 * self.min_num) or self.nc < self.K / 2):
+                    ((self.result[i].shape[0] > 2 * self.min_num) or self.nc < self.K / 2):
+                    # ((self.inner_mean_distance[i] > self.all_mean_distance and self.result[i].shape[0] > 2 * self.min_num) or self.nc < self.K / 2):
                 # 分裂操作
                 self.nc += 1
                 center = self.center[i]
@@ -235,11 +238,24 @@ def show_all(matrix, isodata):
     plt.ylabel('lat')
     plt.show()
 
+def get_start_end(dict):
+    dict_res = {}
+    start_matrix, end_matrix  = [], []
+    for value in dict.values():
+        
+        dict_res[value.id] = (value.start, value.end)
+
+        lonlat = value.start.split(',')
+        start_matrix.append([float(lonlat[0]), float(lonlat[1])])
+
+        lonlat = value.end.split(',')
+        end_matrix.append([float(lonlat[0]), float(lonlat[1])])
+    return start_matrix, end_matrix, dict_res
 if __name__ == "__main__":
     
     yixin = YixinTable()
     # yixin.load(r'jirm\experience-route\jirm.csv')
-    start_matrix, end_matrix, dict = yixin.select('867012030302811') # 867012030302811/867012030287491
+    start_matrix, end_matrix, dict = get_start_end(yixin.select('867012030302811')) # 867012030302811  "867012030287491"
 
     # nc : 预选nc个聚类中心
     # K：希望的聚类中心个数
@@ -249,7 +265,7 @@ if __name__ == "__main__":
     # L：在一次迭代中允许合并的聚类中心的最大对数
     # I：允许迭代的次数
     # k：分裂系数
-    initial_set = [4, 8, 5, 0.01, 0.01, 1, 10, 0.5]
+    initial_set = [10, 25, 5, 0.01, 0.01, 1, 10, 0.5]
     start_isodata = IsoData(initial_set, start_matrix)
     start_isodata.start()
     start_result = start_isodata.get_result()
@@ -257,14 +273,13 @@ if __name__ == "__main__":
     end_isodata = IsoData(initial_set, end_matrix)
     end_isodata.start()
     end_result = end_isodata.get_result()
-
-
+    print(len(start_result), len(end_result), len(start_isodata.outlier), len(end_isodata.outlier),  sep=';')
     show_all(start_matrix, start_isodata)
     show_all(end_matrix, end_isodata)
     for key, value in dict.items():
         start_mean = start_result[value[0]] if value[0] in start_result else ''
         end_mean = end_result[value[1]] if value[1] in end_result else ''
-        print(key, value[0], value[1], start_mean, end_mean, sep='-------')
+        # print(key, value[0], value[1], start_mean, end_mean, sep='-------')
         yixin.update(key, start_mean, end_mean)
         yixin.commit()
     yixin.commit()
