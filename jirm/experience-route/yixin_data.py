@@ -4,9 +4,9 @@ import sqlite3
 import numpy as np
 import pymongo as pm
 
-'''sqlite3数据类型：INTEGER， REAL（浮点型），TEXT， BLOB
+'''
+   sqlite3数据类型：INTEGER， REAL（浮点型），TEXT， BLOB
    "id","end","imei","links","org","start","track","vin"
-
    从mongo库倒数据到本地sqlite
 '''
 
