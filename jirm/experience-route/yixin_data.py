@@ -3,18 +3,24 @@ import sys
 import sqlite3
 import numpy as np
 import pymongo as pm
+import logging
+
 
 '''
    sqlite3数据类型：INTEGER， REAL（浮点型），TEXT， BLOB
    "id","end","imei","links","org","start","track","vin"
    从mongo库倒数据到本地sqlite
 '''
-
 __table_name__ = 'yixin_org'
 __table_name_filte__ = 'yixin_org_filte'
 __yixin_experience_org__ = 'yixin_experience_org'
 __mongo_host__ = '192.168.145.79'
 __mongo_port__ = 27017
+
+__LOG_FORMAT__ = "%(asctime)s - %(levelname)s - %(message)s"
+__DATE_FORMAT__ = "%m-%d-%Y %H:%M:%S %p"
+
+logging.basicConfig(level=logging.INFO,filename='my.log',datefmt=__DATE_FORMAT__,format=__LOG_FORMAT__)   #从debug输出
 
 class YixinData(object):
     def __init__(self, data):
@@ -35,8 +41,8 @@ class YixinData(object):
 class YixinTable(object) :
     def __init__(self):
         # /mapbar/data/sqlite3
-        # self._conn = sqlite3.connect('D:/sqlite3/yixin.db')
-        self._conn = sqlite3.connect('/mapbar/data/sqlite3/yixin.db')
+        self._conn = sqlite3.connect('D:/sqlite3/yixin.db')
+        # self._conn = sqlite3.connect('/mapbar/data/sqlite3/yixin.db')
         self._cursor = self._conn.cursor()
         
         # self._cursor.execute('DROP TABLE ' + __table_name__) 
@@ -99,9 +105,9 @@ class YixinTable(object) :
             if org != None and org['orgLonlats'] != '':
                 org = org['orgLonlats']
                 k += 1
-                print(k)
                 self.insert(str(en['_id']), en['imei'], en['vin'], str(en['startLon']) + ',' + str(en['startLat']), str(en['endLon']) + ',' + str(en['endLat']), 
                         en['startTime'], en['endTime'], en['runTime'], en['interval'], en['speed'], '', '', org)
+        logging.debug('%s 包含的轨迹条数：%s' % (imei, k))
         self._conn.commit()
             
 if __name__ == "__main__":

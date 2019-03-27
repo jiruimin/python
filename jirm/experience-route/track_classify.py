@@ -6,14 +6,13 @@ import sqlite3
 from yixin_data import YixinTable
 import math
 
-__yixin = YixinTable()
 
 ''' 
 对一个imei所有的 通信距离大于5公里的经纬度串
 '''
-def classify(imei):
+def classify(yixin_dict):
     res_dict = {}
-    yixin_dict = __yixin.select(imei)
+    
     for value in yixin_dict.values():
         if ',' in value.startMean and ',' in value.endMean:
             lonlat = value.startMean.split(',')
@@ -76,7 +75,9 @@ def get_experience_lonlat(lonlats_list):
 
 
 if __name__ == "__main__":
-    yixin_dict = classify(867012030302811)   # 867012030287491  "867012030287491"
+    yixin = YixinTable()
+    yixin_dict = yixin.select('867012030302811')
+    yixin_dict = classify(yixin_dict)   # 867012030287491  "867012030287491"
     for key,value in yixin_dict.items():
         lonlats_list = []
         yixin_ids = []
@@ -84,6 +85,6 @@ if __name__ == "__main__":
             lonlats_list.append(data.org)
             yixin_ids.append(data.id)
         index = get_experience_lonlat(lonlats_list)
-        __yixin.insert_experience_org(value[0].imei, value[0].vin,  value[0].startMean,  value[0].endMean,
+        yixin.insert_experience_org(value[0].imei, value[0].vin,  value[0].startMean,  value[0].endMean,
                  value[0].startTime, str(yixin_ids), yixin_ids[index], lonlats_list[index])
-    __yixin.commit()
+    yixin.commit()

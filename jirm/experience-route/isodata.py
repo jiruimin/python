@@ -15,13 +15,18 @@ isodata聚合算法实现，基于numpy库
 import numpy as np
 from yixin_data import YixinTable 
 import matplotlib.pyplot as plt
+import logging
 
+__LOG_FORMAT__ = "%(asctime)s - %(levelname)s - %(message)s"
+__DATE_FORMAT__ = "%m-%d-%Y %H:%M:%S %p"
 
-
+logging.basicConfig(level=logging.INFO,datefmt=__DATE_FORMAT__,format=__LOG_FORMAT__)   #从debug输出
 
 class IsoData(object):
 
     def __init__(self, initial_set, data):
+        self.flag = True
+
         # initial_set 为初始设置集合，依次为nc,K,min_num,s,c,L,I,k
         self.nc = initial_set[0]
         self.K = initial_set[1]
@@ -55,12 +60,14 @@ class IsoData(object):
                 point = str(self.result[i][j][0]) + ',' + str(self.result[i][j][1])
                 dict[point] = '%.5f,%.5f' % (self.center[i][0], self.center[i][1])
                 ll += (point + ';')
-            print('%s/%s:%5f,%5f------%s' % (len(self.center), i, self.center[i][0], self.center[i][1], ll))
+            logging.debug('%s/%s:%5f,%5f------%s' % (len(self.center), i, self.center[i][0], self.center[i][1], ll))
         return dict
 
     def start(self):
+        if not self.flag:
+            return
         self.current_i += 1
-        print('第[%s]轮循环......当前中心点[%s]：' % (len(self.center), self.current_i), str(self.center), sep='')
+        logging.debug('第[%s]轮循环......当前中心点[%s]：' % (len(self.center), self.current_i), str(self.center), sep='')
         
         # 将全体样本分类
         if self.current_i == 1:
@@ -79,15 +86,18 @@ class IsoData(object):
                     if dis_l < dis_min:
                         dis_min = dis_l
                         index = j
-                self.result[index] = np.vstack((self.result[index], point))
+                self.result[index] = np.vstack((self.result[index], point)) 
         # 删除第一个点，第一个点为类中心点，删除重复添加
         for i in range(len(self.result)):
-            self.result[i] = np.delete(self.result[i], 0, axis = 0)
+            if self.result[i].shape == (2,):
+                self.result[i] = []
+            else:
+                self.result[i] = np.delete(self.result[i], 0, axis = 0)
 
         # self.show()
         # 删除样本条数小于min_num的分类
         for i in range(len(self.result) - 1, -1, -1):
-            if len(self.result[i]) < self.min_num:
+            if len(self.result[i]) <= self.min_num:
                 self.outlier.append(self.result[i])
                 self.result.pop(i)
                 self.center.pop(i)
@@ -131,7 +141,7 @@ class IsoData(object):
 
     def step8_9_10(self):
         # 计算每类样本群的标准差向量
-        print('第[%s]轮循环......分裂' % self.current_i)
+        logging.debug('第[%s]轮循环......分裂' % self.current_i)
         max_standard_index = []
         max_standard_dev = []
         for i in range(len(self.result)):
@@ -163,7 +173,7 @@ class IsoData(object):
 
     # 合并操作
     def step11(self):
-        print('第[%s]轮循环......合并' % self.current_i)
+        logging.debug('第[%s]轮循环......合并' % self.current_i)
         dis_center = 999
         for i in range(len(self.center)):
             for j in range(i + 1, len(self.center)):
@@ -251,11 +261,24 @@ def get_start_end(dict):
         lonlat = value.end.split(',')
         end_matrix.append([float(lonlat[0]), float(lonlat[1])])
     return start_matrix, end_matrix, dict_res
+
+def get_initial_set(matrix):
+    initial_set = [10, 25, 5, 0.01, 0.01, 1, 10, 0.5]
+    if len(matrix) == 0:
+        return None
+    elif len(matrix) == 1:
+        initial_set[0] = 1
+    elif initial_set[0] > len(matrix):
+        initial_set[0] = len(matrix) // 2
+    if len(matrix) < 50:
+        initial_set[2] = 0
+    return initial_set
+
 if __name__ == "__main__":
-    
+    imei = '867012030284514'
     yixin = YixinTable()
     # yixin.load(r'jirm\experience-route\jirm.csv')
-    start_matrix, end_matrix, dict = get_start_end(yixin.select('867012030287491')) # 867012030302811  "867012030287491"
+    start_matrix, end_matrix, dict = get_start_end(yixin.select(imei)) # 867012030302811  "867012030287491"
 
     # nc : 预选nc个聚类中心
     # K：希望的聚类中心个数
@@ -265,21 +288,19 @@ if __name__ == "__main__":
     # L：在一次迭代中允许合并的聚类中心的最大对数
     # I：允许迭代的次数
     # k：分裂系数
-    initial_set = [10, 25, 5, 0.01, 0.01, 1, 10, 0.5]
-    start_isodata = IsoData(initial_set, start_matrix)
+    start_isodata = IsoData(get_initial_set(start_matrix), start_matrix)
     start_isodata.start()
     start_result = start_isodata.get_result()
 
-    end_isodata = IsoData(initial_set, end_matrix)
+    end_isodata = IsoData(get_initial_set(end_matrix), end_matrix)
     end_isodata.start()
     end_result = end_isodata.get_result()
-    print(len(start_result), len(end_result), len(start_isodata.outlier), len(end_isodata.outlier),  sep=';')
-    show_all(start_matrix, start_isodata)
-    show_all(end_matrix, end_isodata)
+    logging.debug('%s 起点聚合数：[%s], 终点聚合数：[%s].' % (imei, len(start_result), len(end_result)))
+    # show_all(start_matrix, start_isodata)
+    # show_all(end_matrix, end_isodata)
     for key, value in dict.items():
         start_mean = start_result[value[0]] if value[0] in start_result else ''
         end_mean = end_result[value[1]] if value[1] in end_result else ''
         # print(key, value[0], value[1], start_mean, end_mean, sep='-------')
         yixin.update(key, start_mean, end_mean)
-        yixin.commit()
     yixin.commit()
