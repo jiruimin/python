@@ -1,4 +1,4 @@
-REM @echo off
+@echo off
 set date=%date%
 set op=%1
 if "%op%"=="git-pull" ( 
