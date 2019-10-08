@@ -4,6 +4,9 @@ import json
 
 url = "http://w.mapbar.com/city/getCityDetail.json?city=%s"
 
+'''
+xml文件处理方式以及构建生成方式
+'''
 
 def city_txt():
     citys = open('city.txt', 'r', encoding='utf-8')
@@ -31,7 +34,7 @@ def city_txt():
     ET.dump(n_xml)
 
 def city_list():
-    with open('jirm/xml.tool/cityList.txt', 'r', encoding = 'utf-8') as city_file :
+    with open('cityList.txt', 'r', encoding = 'utf-8') as city_file :
         city_xml = ET.Element('citys')
         for line in city_file:
             line = line.strip('\n')
@@ -39,10 +42,10 @@ def city_list():
             adcode = ET.SubElement(city, 'adcode')
             name = ET.SubElement(city, 'name')
             py = ET.SubElement(city, 'py')
-            name.text = line.split(',')[0]
-            adcode.text = line.split(',')[1]
+            adcode.text = line.split(',')[0]
+            name.text = line.split(',')[1]
             py.text = line.split(',')[2]
         et = ET.ElementTree(city_xml)  # 生成文档对象
-        et.write('jirm/xml.tool/te1.xml', encoding='utf-8', xml_declaration=True)
+        et.write('te1.xml', encoding='utf-8', xml_declaration=True)
         ET.dump(city_xml)
 city_list()

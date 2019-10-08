@@ -30,17 +30,30 @@ if __name__ == "__main__":
 
     datas = stb1.distinct('imei')
 
+    yixin = YixinTable()
+    yixin._cursor.execute("select DISTINCT imei from yixin_org")
+    res = yixin._cursor.fetchall()
+    imei_over_set = set()
+    for en in res:
+        imei_over_set.add(en[0])
+    
     k, l = 0, len(datas)
     for imei in datas:
         k += 1
         logging.info('[%s/%s][%s] start...' % (k, l, imei))
         print('[%s/%s][%s] start...' % (k, l, imei))
+        if imei in imei_over_set:
+            print('[%s/%s][%s] Done...' % (k, l, imei))
+            continue
+
+
         yixin = YixinTable()
         yixin.load(imei)   # 867012030302811  "867012030287491"
+        
 
-
-        start_matrix, end_matrix, dict = isodata.get_start_end(yixin.select(imei))  # 867012030302811  "867012030287491"
-
+        '''
+        获取起终点数据集 '''
+        start_matrix, end_matrix, dict = isodata.get_start_end(yixin.select(imei))  # 过滤无效数据
         if(len(start_matrix) == 0 or len(end_matrix) == 0 or len(dict) == 0):
             logging.info('%s data error...' % imei)
             print('%s data error...' % imei)
@@ -66,17 +79,20 @@ if __name__ == "__main__":
         end_result = end_isodata.get_result()
         logging.info('%s start classify ：[%s], end classify：[%s].' % (imei, len(start_result), len(end_result)))
         print('%s start classify ：[%s], end classify：[%s].' % (imei, len(start_result), len(end_result)))
-
+        
         for key, value in dict.items():
             start_mean = start_result[value[0]] if value[0] in start_result else ''
             end_mean = end_result[value[1]] if value[1] in end_result else ''
             yixin.update(key, start_mean, end_mean)
         yixin.commit()
+        '''
+        起终点聚合完成，保存完成'''
+
 
         yixin_dict = yixin.select(imei)
-        yixin_dict = track_classify.classify(yixin_dict)
+        yixin_dict = track_classify.classify(yixin_dict)  # 对相同起终点的轨迹分类
         for key,value in yixin_dict.items():
-            lonlats_list = []
+            lonlats_list = []   # 
             yixin_ids = []
             for data in value:
                 lonlats_list.append(data.org)
@@ -84,4 +100,6 @@ if __name__ == "__main__":
             index = track_classify.get_experience_lonlat(lonlats_list)
             yixin.insert_experience_org(value[0].imei, value[0].vin,  value[0].startMean,  value[0].endMean,
                     value[0].startTime, str(yixin_ids), yixin_ids[index], lonlats_list[index])
+        logging.info('%s lonlat classify over.' % imei)
+        print('%s lonlat classify over.' % imei)
         yixin.commit()

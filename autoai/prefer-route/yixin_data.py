@@ -20,7 +20,7 @@ __mongo_port__ = 27017
 __LOG_FORMAT__ = "%(asctime)s - %(levelname)s - %(message)s"
 __DATE_FORMAT__ = "%m-%d-%Y %H:%M:%S %p"
 
-logging.basicConfig(level=logging.INFO,filename='my.log',datefmt=__DATE_FORMAT__,format=__LOG_FORMAT__)   #从debug输出
+logging.basicConfig(level=logging.INFO, filename='my.log', datefmt=__DATE_FORMAT__, format=__LOG_FORMAT__)   #从debug输出
 
 class YixinData(object):
     def __init__(self, data):
@@ -88,6 +88,26 @@ class YixinTable(object) :
             dict[yixin_data.id] = yixin_data
         return dict
 
+    def up_mongo(self):
+        client = pm.MongoClient(__mongo_host__, __mongo_port__)  # 端口号是数值型
+        db = client['location-platform']
+        stb = db[__yixin_experience_org__]
+        res = self._cursor.execute("SELECT * from %s" % __yixin_experience_org__)
+        # res = self._cursor.fetchall()
+        k = 0
+        for en in res:
+            dict = {}
+            dict['imei'] = en[0]
+            dict['vin'] = en[1]
+            dict['startMean'] = en[2]
+            dict['endMean'] = en[3]
+            dict['startTime'] = en[4]
+            dict['yixin_ids'] = en[5]
+            dict['correct_id'] = en[6]
+            dict['org'] = en[7]
+            stb.insert_one(dict)
+            k += 1
+            print(k)
     def load(self, imei):
         # 获取连接
         client = pm.MongoClient(__mongo_host__, __mongo_port__)  # 端口号是数值型
@@ -112,4 +132,5 @@ class YixinTable(object) :
             
 if __name__ == "__main__":
     yixin = YixinTable()
-    yixin.load('867012030287491') # 867012030302811  "867012030287491"
+    # yixin.load('867012030287491') # 867012030302811  "867012030287491"
+    yixin.up_mongo()

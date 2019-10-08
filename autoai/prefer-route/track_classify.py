@@ -8,13 +8,14 @@ import math
 
 
 ''' 
-对一个imei所有的 通信距离大于5公里的经纬度串
+返回一个imei所有的 通信距离大于5公里的经纬度串,按起终点分类
+返回dict{key：lonlat, value: 轨迹list}
 '''
 def classify(yixin_dict):
     res_dict = {}
     
     for value in yixin_dict.values():
-        if ',' in value.startMean and ',' in value.endMean:
+        if ',' in value.startMean and ',' in value.endMean: 
             lonlat = value.startMean.split(',')
             start_lon = float(lonlat[0])
             start_lat = float(lonlat[1])
@@ -49,20 +50,20 @@ def get_grid(lonlats):
 def get_experience_lonlat(lonlats_list):
     grade = []
     lonlat_grid_set = []
-    total_grid = {}
+    grid_weight = {}
     for lonlats in lonlats_list:
         grid_set = get_grid(lonlats)
         lonlat_grid_set.append(grid_set)
         for grid in grid_set:
-            if grid in total_grid:
-                total_grid[grid] += 1
+            if grid in grid_weight:
+                grid_weight[grid] += 1
             else:
-                total_grid[grid] = 1
+                grid_weight[grid] = 0
     
     for lonlat_grid in lonlat_grid_set:
         g = 0
         for grid in lonlat_grid:
-            g += total_grid[grid]
+            g += grid_weight[grid]
         grade.append(g)
     
     res = 0
